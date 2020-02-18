@@ -56,7 +56,8 @@ def create2(n):
             # Prevent index out of bounds issues if it manages to find the perfect solution first try
             if j == n:
                 return n - j, board, pos_slope_diag, neg_slope_diag
-    # This loop is placing queens that almost certainly have collisions
+    # This loop is placing queens most likely have collisions
+    # Typically last <100 pieces.
     for i in range(j, n):
         rand_swap = randint(i, n_minus_one)  # Just choose randomly from the future columns as to where to place
         pos_slope_diag[board[rand_swap] - i] += 1
@@ -78,19 +79,24 @@ Returns:
 
 
 def fix(n, k, board, pos_slope_diag, neg_slope_diag):
-
-    for i in range(n - k):
+    # For each potentially colliding queen find successful swap
+    for i in range(n - k, n):
+        # If it is actually colliding or could have been resolved already/never been colliding
         if pos_slope_diag[board[i] - i] > 1 or neg_slope_diag[board[i] + i] > 1:
+            # Counter to determine if it should give up. avg 72 per queen
             count = 0
             while True:
                 m = randint(0, n - 1)
+                # Swaps queen with a random other piece
                 swap(board, i, m, pos_slope_diag, neg_slope_diag)
+                # If swap causes 0 collisions for both pieces then move onto next queen
                 if (pos_slope_diag[board[i] - i] == 1 and neg_slope_diag[board[i] + i] == 1 and pos_slope_diag[
                     board[m] - m] == 1 and neg_slope_diag[board[m] + m] == 1):
                     break
+                # Otherwise swap back
                 swap(board, i, m, pos_slope_diag, neg_slope_diag)
                 count += 1
-                if count > 7000:
+                if count > 7000:  # Conservative give-up amount
                     return False
     return True
 
@@ -105,6 +111,8 @@ def main():
         iterations += 1
     print("Generated board in ", datetime.datetime.now() - startTime, "seconds and", iterations, "iterations")
     return iterations
+
+
 #
 # sample_input = [10000]
 # startTime = datetime.datetime.now()
