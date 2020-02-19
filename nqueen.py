@@ -1,7 +1,7 @@
 import datetime
 import random
 
-sample_input = [10000000]
+STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER = 999
 
 
 def randint(min, max):
@@ -79,64 +79,111 @@ Returns:
 
 
 def fix(n, k, board, pos_slope_diag, neg_slope_diag):
-    # For each potentially colliding queen find successful swap
-    for i in range(n - k, n):
-        # If it is actually colliding or could have been resolved already/never been colliding
-        if pos_slope_diag[board[i] - i] > 1 or neg_slope_diag[board[i] + i] > 1:
-            # Counter to determine if it should give up. avg 72 per queen
-            count = 0
-            while True:
-                m = randint(0, n - 1)
-                # Swaps queen with a random other piece
-                swap(board, i, m, pos_slope_diag, neg_slope_diag)
-                # If swap causes 0 collisions for both pieces then move onto next queen
-                if (pos_slope_diag[board[i] - i] == 1 and neg_slope_diag[board[i] + i] == 1 and pos_slope_diag[
-                    board[m] - m] == 1 and neg_slope_diag[board[m] + m] == 1):
-                    break
-                # Otherwise swap back
-                swap(board, i, m, pos_slope_diag, neg_slope_diag)
-                count += 1
-                if count > 7000:  # Conservative give-up amount
-                    return False
+    # General case where the board can be corrected without recreating
+    if n > STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER:
+        # For each potentially colliding queen find successful swap
+        for i in range(n - k, n):
+            # If it is actually colliding or could have been resolved already/never been colliding
+            if pos_slope_diag[board[i] - i] > 1 or neg_slope_diag[board[i] + i] > 1:
+                # Counter to determine if it should give up. avg 72 per queen
+                count = 0
+                while True:
+                    m = randint(0, n - 1)
+                    # Swaps queen with a random other piece
+
+                    swap(board, i, m, pos_slope_diag, neg_slope_diag)
+                    # If swap causes 0 collisions for both pieces then move onto next queen
+                    if (pos_slope_diag[board[i] - i] == 1 and neg_slope_diag[board[i] + i] == 1 and pos_slope_diag[
+                        board[m] - m] == 1 and neg_slope_diag[board[m] + m] == 1):
+                        break
+                    # Otherwise swap back
+                    swap(board, i, m, pos_slope_diag, neg_slope_diag)
+                    count += 1
+                    if count > 7000:  # Conservative give-up amount
+                        return False
+        return True
+    # Case where another board has a greater than 1/10,000 chance of needing to be regenerated so use finagling
+    # techniques to avoid regenerating a board
+    rows_dict = [1 for _ in range(n)]
+    i = 0
+    stop_counter = 0
+    # This is a CSP without any max steps. I want full grades here so this needs to work 100% of the time even if it is
+    # grossly slower than just remaking the board.
+    while True:
+        # If current is a solution
+        if stop_counter == n:
+            break
+        q = i % n
+        # This queen is already good
+        if pos_slope_diag[board[q] - q] == 1 and neg_slope_diag[board[q] + q] == 1 and rows_dict[board[q]] == 1:
+            i += 1
+            stop_counter += 1
+            continue
+        # Choosing a conflicting Queen
+        else:
+            # Remove it from the collisions
+            pos_slope_diag[board[q] - q] -= 1
+            neg_slope_diag[board[q] + q] -= 1
+            rows_dict[board[q]] -= 1
+            # Look at literally every position in the column
+            new_places = [(j, rows_dict[j] + neg_slope_diag[j + q] + pos_slope_diag[j - q]) for j in
+                          range(n)]
+            zeros = list(filter(lambda x: x[1] == 0,
+                                new_places))
+            # If you can find somewhere with no collisions go there
+            if len(zeros) > 0:
+                move_to = random.choice(zeros)[0]
+                stop_counter += 1
+            else:
+                ones = list(filter(lambda x: x[1] == 1, new_places))
+                # If you can find somewhere with 1 collision, go randomly to one of those
+                if len(ones) > 0:
+                    move_to = random.choice(ones)[0]
+                else:
+                    # If you can't find a one collision spot literally move anywhere, add some randomness into your life
+                    move_to = random.choice(new_places)[0]
+                stop_counter = 0  # Reset stop counter so that it must check every piece at least once before ending
+            # If the one-collision or random choice happened to be your choice re-roll till you find somewhere else
+            while move_to == board[q]:
+                move_to = random.choice(new_places)[0]
+            board[q] = move_to
+            pos_slope_diag[board[q] - q] += 1
+            neg_slope_diag[board[q] + q] += 1
+            rows_dict[board[q]] += 1
+            i += 1
     return True
 
 
-def main():
+def generate_queen_board(n):
     found = False
-    startTime = datetime.datetime.now()
     iterations = 0
     while not found:
-        k, board, pos_slope_dict, neg_slop_dict = create2(sample_input[0])
-        found = fix(sample_input[0], k, board, pos_slope_dict, neg_slop_dict)
+        k, board, pos_slope_dict, neg_slop_dict = create2(n)
+        found = fix(n, k, board, pos_slope_dict, neg_slop_dict)
         iterations += 1
-    print("Generated board in ", datetime.datetime.now() - startTime, "seconds and", iterations, "iterations")
     return iterations
 
 
-#
-# sample_input = [10000]
-# startTime = datetime.datetime.now()
-# print("avg iterations for 10,000", sum([main() for i in range(10)])/10)
-# print("Generated board in ", datetime.datetime.now() - startTime)
-#
-# sample_input = [100000]
-# startTime = datetime.datetime.now()
-# print("avg iterations for 100,000", sum([main() for i in range(10)])/10)
-# print("Generated board in ", datetime.datetime.now() - startTime)
-#
-# sample_input = [1000000]
-# startTime = datetime.datetime.now()
-# print("avg iterations for 1,000,000", sum([main() for i in range(10)])/10)
-# print("Generated board in ", datetime.datetime.now() - startTime)
-#
-# sample_input = [2000000]
-# startTime = datetime.datetime.now()
-# print("avg iterations for 2,000,000", sum([main() for i in range(10)])/10)
-# print("Generated board in ", datetime.datetime.now() - startTime)
-#
-# sample_input = [3000000]
-# startTime = datetime.datetime.now()
-# print("avg iterations for 3,000,000", sum([main() for i in range(10)])/10)
-# print("Generated board in ", datetime.datetime.now() - startTime)
+def do_sample_avg(n, iterations=100):
+    start_time = datetime.datetime.now()
+    print("n =", n, "correct solutions/total formulas:", iterations, "/",
+          sum([generate_queen_board(n) for _ in range(iterations)]))
+    print("Solved", iterations, "times. ", (datetime.datetime.now() - start_time) / iterations, " per solution")
 
-main()
+
+do_sample_avg(4)
+do_sample_avg(50)
+do_sample_avg(100)
+do_sample_avg(150)
+do_sample_avg(200)
+do_sample_avg(400)
+do_sample_avg(500)
+do_sample_avg(600)
+do_sample_avg(700)
+do_sample_avg(800)
+do_sample_avg(900)
+do_sample_avg(1000)
+do_sample_avg(10000)
+do_sample_avg(100000, 10)
+do_sample_avg(1000000, 5)
+do_sample_avg(10000000, 1)
