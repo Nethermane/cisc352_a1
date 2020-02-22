@@ -107,12 +107,13 @@ def fix(n, k, board, pos_slope_diag, neg_slope_diag):
     rows_dict = [1 for _ in range(n)]
     i = 0
     stop_counter = 0
+    i_max = n * 5000
     # This is a CSP without any max steps. I want full grades here so this needs to work 100% of the time even if it is
     # grossly slower than just remaking the board.
-    while True:
+    while i < i_max:
         # If current is a solution
         if stop_counter == n:
-            break
+            return True
         q = i % n
         # This queen is already good
         if pos_slope_diag[board[q] - q] == 1 and neg_slope_diag[board[q] + q] == 1 and rows_dict[board[q]] == 1:
@@ -151,7 +152,7 @@ def fix(n, k, board, pos_slope_diag, neg_slope_diag):
             neg_slope_diag[board[q] + q] += 1
             rows_dict[board[q]] += 1
             i += 1
-    return True
+    return False
 
 
 def generate_queen_board(n):
