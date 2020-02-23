@@ -4,8 +4,8 @@ import random
 STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER = 999
 
 
-def randint(min, max):
-    return int(random.random() * (max - min) + min)
+def randint(min_num, max_num):
+    return int(random.random() * (max_num - min_num) + min_num)
 
 
 def swap(board, j, m, pos_slope_diag, neg_slope_diag):
@@ -20,9 +20,8 @@ def swap(board, j, m, pos_slope_diag, neg_slope_diag):
     neg_slope_diag[board[j] + j] += 1
 
 
-# Largely inspired by techniques presented in: http://algolist.ru/download.php?path=/maths/combinat/ieeekde94.zip&pspdf=1&ask=1
-# If you draw this out the column is distance from bottom, not form top
 '''
+If you draw this out the column is distance from bottom, not form top
 Parameters
     n = Board size
 
@@ -155,36 +154,44 @@ def fix(n, k, board, pos_slope_diag, neg_slope_diag):
     return False
 
 
+'''
+Combination of generating board and fixing it
+'''
+
+
 def generate_queen_board(n):
     found = False
     iterations = 0
+    board = None
     while not found:
         k, board, pos_slope_dict, neg_slop_dict = create2(n)
         found = fix(n, k, board, pos_slope_dict, neg_slop_dict)
         iterations += 1
-    return iterations
+    return board, iterations
+
+
+'''
+Testing method, to verify correctness
+'''
 
 
 def do_sample_avg(n, iterations=100):
     start_time = datetime.datetime.now()
     print("n =", n, "correct solutions/total formulas:", iterations, "/",
-          sum([generate_queen_board(n) for _ in range(iterations)]))
+          sum([generate_queen_board(n)[1] for _ in range(iterations)]))
     print("Solved", iterations, "times. ", (datetime.datetime.now() - start_time) / iterations, " per solution")
 
 
-do_sample_avg(4)
-do_sample_avg(50)
-do_sample_avg(100)
-do_sample_avg(150)
-do_sample_avg(200)
-do_sample_avg(400)
-do_sample_avg(500)
-do_sample_avg(600)
-do_sample_avg(700)
-do_sample_avg(800)
-do_sample_avg(900)
-do_sample_avg(1000)
-do_sample_avg(10000)
-do_sample_avg(100000, 10)
-do_sample_avg(1000000, 5)
-do_sample_avg(10000000, 1)
+def main():
+    with open("nqueens.txt", 'r') as f:
+        lines = f.readlines()
+        boards = []
+        for line in lines:
+            board, iterations = generate_queen_board(int(line))
+            boards.append(board)
+        with open("nqueens_out.txt", "w+") as out:
+            out.writelines(map(lambda x: str(x) + '\n', boards))
+
+
+if __name__ == '__main__':
+    main()
