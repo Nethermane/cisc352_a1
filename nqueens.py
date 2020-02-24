@@ -1,4 +1,3 @@
-import datetime
 import random
 
 STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER = 999
@@ -168,18 +167,6 @@ def generate_queen_board(n):
         found = fix(n, k, board, pos_slope_dict, neg_slop_dict)
         iterations += 1
     return board, iterations
-
-
-'''
-Testing method, to verify correctness
-'''
-
-
-def do_sample_avg(n, iterations=100):
-    start_time = datetime.datetime.now()
-    print("n =", n, "correct solutions/total formulas:", iterations, "/",
-          sum([generate_queen_board(n)[1] for _ in range(iterations)]))
-    print("Solved", iterations, "times. ", (datetime.datetime.now() - start_time) / iterations, " per solution")
 
 
 def main():
