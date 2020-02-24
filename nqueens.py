@@ -1,5 +1,6 @@
 import random
 
+# Divide between using the slowR algorithm and the Q4 algorithm
 STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER = 999
 
 
@@ -64,42 +65,7 @@ def create2(n):
     return n - j, board, pos_slope_diag, neg_slope_diag
 
 
-'''
-Corrects a board or fails (if the board is decided to be too complex) or un-fixible by this algorithm
-Parameters:
-    n = board size
-    board = the board to correct
-    pos_slope_diag = Dictionary representing the collisions on each positive diagonal
-    neg_slope_diag = Dictionary representing the collisions on each negative diagonal
-Returns:
-    whether the board was fixed
-'''
-
-
-def fix(n, k, board, pos_slope_diag, neg_slope_diag):
-    # General case where the board can be corrected without recreating
-    if n > STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER:
-        # For each potentially colliding queen find successful swap
-        for i in range(n - k, n):
-            # If it is actually colliding or could have been resolved already/never been colliding
-            if pos_slope_diag[board[i] - i] > 1 or neg_slope_diag[board[i] + i] > 1:
-                # Counter to determine if it should give up. avg 72 per queen
-                count = 0
-                while True:
-                    m = randint(0, n - 1)
-                    # Swaps queen with a random other piece
-
-                    swap(board, i, m, pos_slope_diag, neg_slope_diag)
-                    # If swap causes 0 collisions for both pieces then move onto next queen
-                    if (pos_slope_diag[board[i] - i] == 1 and neg_slope_diag[board[i] + i] == 1 and pos_slope_diag[
-                        board[m] - m] == 1 and neg_slope_diag[board[m] + m] == 1):
-                        break
-                    # Otherwise swap back
-                    swap(board, i, m, pos_slope_diag, neg_slope_diag)
-                    count += 1
-                    if count > 7000:  # Conservative give-up amount
-                        return False
-        return True
+def slow_r(board, n, neg_slope_diag, pos_slope_diag):
     # Case where another board has a greater than 1/10,000 chance of needing to be regenerated so use finagling
     # techniques to avoid regenerating a board
     rows_dict = [1 for _ in range(n)]
@@ -153,9 +119,51 @@ def fix(n, k, board, pos_slope_diag, neg_slope_diag):
     return False
 
 
+def q4(board, k, n, neg_slope_diag, pos_slope_diag):
+    # For each potentially colliding queen find successful swap
+    for i in range(n - k, n):
+        # If it is actually colliding or could have been resolved already/never been colliding
+        if pos_slope_diag[board[i] - i] > 1 or neg_slope_diag[board[i] + i] > 1:
+            # Counter to determine if it should give up. avg 72 per queen
+            count = 0
+            while True:
+                m = randint(0, n - 1)
+                # Swaps queen with a random other piece
+
+                swap(board, i, m, pos_slope_diag, neg_slope_diag)
+                # If swap causes 0 collisions for both pieces then move onto next queen
+                if (pos_slope_diag[board[i] - i] == 1 and neg_slope_diag[board[i] + i] == 1 and pos_slope_diag[
+                    board[m] - m] == 1 and neg_slope_diag[board[m] + m] == 1):
+                    break
+                # Otherwise swap back
+                swap(board, i, m, pos_slope_diag, neg_slope_diag)
+                count += 1
+                if count > 7000:  # Conservative give-up amount
+                    return False
+    return True
+
+
 '''
 Combination of generating board and fixing it
 '''
+
+'''
+Corrects a board or fails (if the board is decided to be too complex) or un-fixible by this algorithm
+Parameters:
+    n = board size
+    board = the board to correct
+    pos_slope_diag = Dictionary representing the collisions on each positive diagonal
+    neg_slope_diag = Dictionary representing the collisions on each negative diagonal
+Returns:
+    whether the board was fixed
+'''
+
+
+def fix(n, k, board, pos_slope_diag, neg_slope_diag):
+    # General case where the board can be corrected without recreating
+    if n > STATISTICALLY_SINGLE_BOARD_GENERATED_DIVIDER:
+        return q4(board, k, n, neg_slope_diag, pos_slope_diag)
+    return slow_r(board, n, neg_slope_diag, pos_slope_diag)
 
 
 def generate_queen_board(n):
